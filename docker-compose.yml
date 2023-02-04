@@ -1,18 +1,18 @@
 version: "3.7"
 
 services:
-  postgres:
-    image: postgres:13-alpine
-    restart: unless-stopped
-    volumes:
-      - ./volumes/postgres/data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
-      - POSTGRES_USER
-    ports:
-      - 5432:5432
-    command: postgres -c log_statement=all
+  # postgres:
+  #   image: postgres:13-alpine
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./volumes/postgres/data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_PASSWORD
+  #     - POSTGRES_DB
+  #     - POSTGRES_USER
+  #   ports:
+  #     - 5432:5432
+  #   command: postgres -c log_statement=all
   mysql:
     image: mysql
     cap_add:
@@ -41,11 +41,11 @@ services:
         host_uid: ${UID}
         host_gid: ${GID}
     volumes:
-      - ./.docker/app/wait-for-db.php:/var/www/scripts/wait-for-db.php
-      - ./.env:/var/www/.env
+      - ./.docker/app/wait-for-db.php:/home/nextcloud/wait-for-db.php
+      - ./.env:/home/nextcloud/.env
       - ~/.composer:/root/.composer/
       - ~/.npm:/root/.npm/
-      - ./volumes/nextcloud:/var/www/html
+      - ./volumes/nextcloud:/src
     restart: unless-stopped
     environment:
       - DEFAULT_PHONE_REGION
@@ -67,7 +67,7 @@ services:
     build: .docker/web
     restart: unless-stopped
     volumes:
-      - ./volumes/nextcloud:/var/www/html:ro
+      - ./volumes/nextcloud:/src:ro
       - ./volumes/nginx/includes:/etc/nginx/conf.d/includes/
     ports:
       - ${HTTP_PORT}:80

@@ -1,0 +1,6 @@
+{
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "nextcloud",
+    "remoteUser": "nextcloud",
+    "workspaceFolder": "/src"
+}

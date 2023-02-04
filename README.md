@@ -52,7 +52,7 @@ Good work!
 - Add the follow to your launch.json inside configuration named as `Listen for Xdebug`:
   ```json
             "pathMappings": {
-                "/var/www/html": "${workspaceFolder}"
+                "/src": "${workspaceFolder}"
             }
   ```
 **I havent permission to write in files of my project using my user**

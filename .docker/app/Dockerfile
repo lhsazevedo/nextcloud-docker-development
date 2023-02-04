@@ -9,9 +9,8 @@ ARG host_gid
 ENV VERSION_XDEBUG=${version_xdebug}
 ENV VERSION_NODE=${version_node}
 
-RUN apt-get update
-
-RUN apt-get install -y \
+RUN apt-get update \
+    && apt-get install -y \
         git \
         libicu-dev \
         libzip-dev \
@@ -21,76 +20,40 @@ RUN apt-get install -y \
         && docker-php-ext-install opcache \
         && docker-php-ext-install zip
 
-RUN usermod --non-unique --uid ${host_uid} www-data \
-  && groupmod --non-unique --gid ${host_gid} www-data 
+RUN addgroup --gid ${host_gid} nextcloud \
+    && adduser --uid ${host_uid} --ingroup nextcloud nextcloud \
+    && sed -i "/user =/c\user = nextcloud" /usr/local/etc/php-fpm.d/www.conf \
+    && sed -i "/group =/c\group = nextcloud" /usr/local/etc/php-fpm.d/www.conf
 
+# RUN usermod --non-unique --uid ${host_uid} www-data \
+#     && groupmod --non-unique --gid ${host_gid} www-data
 
-# Install PostgreSQL
-RUN apt-get install -y \
-        libpq-dev \
-        && docker-php-ext-configure pgsql -with-pgsql=/usr/local/pgsql \
-        && docker-php-ext-install pdo pdo_pgsql pgsql
+RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
 
-# Install Redis
-RUN pecl install redis \
-    && docker-php-ext-enable redis
-
-# Install Memcached
-RUN apt-get install -y libmemcached-dev \
-    && pecl install memcached \
-    && docker-php-ext-enable memcached
-
-# Install APCu
-RUN pecl install apcu \
-    && docker-php-ext-enable apcu
-
-# Install MySQL
-RUN docker-php-ext-configure mysqli -with-mysqli=mysqlnd \
-    && docker-php-ext-configure pdo_mysql -with-pdo-mysql=mysqlnd \
-    && docker-php-ext-install pdo pdo_mysql mysqli
-
-# Install GD
-RUN apt-get install -y \
-        libfreetype6-dev \
-        libjpeg62-turbo-dev \
-        libpng-dev \
-        libxpm-dev
-
-RUN docker-php-ext-configure gd --with-freetype=/usr/include/ \
-                                --with-jpeg=/usr/include/ \
-                                --with-xpm=/usr/include/ \
-                                --enable-gd-jis-conv \
-    && docker-php-ext-install gd
-
-# Install Imagick
-RUN apt-get install -y libmagickwand-dev
-RUN pecl install \
-    imagick
-RUN docker-php-ext-enable imagick
-RUN sed -i'' 's|.*<policy domain="coder".*"PDF".*|<policy domain="coder" rights="read \| write" pattern="PDF" />|g' /etc/ImageMagick-6/policy.xml
-
-# Install intl
-RUN docker-php-ext-install intl
-
-# Install pcntl
-RUN docker-php-ext-install pcntl
-
-# Install sockets
-RUN docker-php-ext-install sockets
-
-# Install bcmath
-RUN docker-php-ext-install bcmath
-
-# Install gmp
-RUN apt-get install -y libgmp-dev
-RUN docker-php-ext-install gmp
-
-# Install sysvsem
-RUN docker-php-ext-install sysvsem
-
-# Install xdebug
-RUN pecl install xdebug-${VERSION_XDEBUG} \
-    && docker-php-ext-enable xdebug
+# Install extensions
+ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+RUN chmod uga+x /usr/local/bin/install-php-extensions && sync \
+    && install-php-extensions \
+    pdo \
+    pdo_pgsql \
+    pgsql \
+    pdo_mysql \
+    mysqli \
+    redis \
+    memcached \
+    apcu \
+    gd \
+    imagick \
+    intl \
+    pcntl \
+    sockets \
+    bcmath \
+    gmp \
+    sysvsem \
+    xdebug \
+    # Configure Imagick
+    && sed -i'' 's|.*<policy domain="coder".*"PDF".*|<policy domain="coder" rights="read \| write" pattern="PDF" />|g' /etc/ImageMagick-6/policy.xml \
+    && rm /usr/local/bin/install-php-extensions
 
 # Install node
 ENV NVM_DIR=/opt/nvm
@@ -103,12 +66,14 @@ RUN cd $NVM_DIR && \
     npm install --global npm@8 && \
     npm install --global webpack && \
     npm install --global webpack-cli
-RUN echo "source ${NVM_DIR}/nvm.sh" > $HOME/.bashrc
+RUN echo "source ${NVM_DIR}/nvm.sh" > /home/nextcloud/.bashrc
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 COPY config/php.ini /usr/local/etc/php/conf.d/
 
-WORKDIR /var/www/html
+WORKDIR /src
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 ENTRYPOINT [ "bash", "/usr/local/bin/entrypoint.sh" ]
+
+USER nextcloud
