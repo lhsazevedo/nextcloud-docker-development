@@ -45,7 +45,7 @@ services:
       - ./.env:/home/nextcloud/.env
       - ~/.composer:/root/.composer/
       - ~/.npm:/root/.npm/
-      - ./volumes/nextcloud:/src
+      - ./volumes/nextcloud:/nextcloud
     restart: unless-stopped
     environment:
       - DEFAULT_PHONE_REGION
@@ -67,7 +67,7 @@ services:
     build: .docker/web
     restart: unless-stopped
     volumes:
-      - ./volumes/nextcloud:/src:ro
+      - ./volumes/nextcloud:/nextcloud:ro
       - ./volumes/nginx/includes:/etc/nginx/conf.d/includes/
     ports:
       - ${HTTP_PORT}:80

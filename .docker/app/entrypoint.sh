@@ -10,11 +10,13 @@ if [ ! -d ".git" ]; then
     mkdir data
     mkdir apps-writable
     mkdir apps-extra
-    # chown -R www-data:www-data .
+    chown -R nextcloud:nextcloud .
 fi
 
 # Wait for database
 php /home/nextcloud/wait-for-db.php
+
+su nextcloud
 
 # Set configurations, if needed
 if [[ ! -f "config/config.php" && ${AUTOINSTALL} -eq 1 ]]; then
@@ -29,17 +31,17 @@ if [[ ! -f "config/config.php" && ${AUTOINSTALL} -eq 1 ]]; then
     "system": {
         "apps_paths":[
             {
-                "path":"/src/apps",
+                "path":"/nextcloud/apps",
                 "url":"/apps",
                 "writable":false
             },
             {
-                "path":"/src/apps-extra",
+                "path":"/nextcloud/apps-extra",
                 "url":"/apps-extra",
                 "writable":false
             },
             {
-                "path":"/src/apps-writable",
+                "path":"/nextcloud/apps-writable",
                 "url":"/apps-extra",
                 "writable":true
             }
@@ -54,7 +56,7 @@ EOF
 
     php occ config:system:set debug                      --value true --type boolean
     php occ config:system:set loglevel                   --value 0 --type integer
-    php occ config:system:set query_log_file             --value /src/data/database.log
+    php occ config:system:set query_log_file             --value /nextcloud/data/database.log
 
     php occ config:system:set default_phone_region       --value ${DEFAULT_PHONE_REGION}
     php occ config:system:set allow_local_remote_servers --value true --type boolean
@@ -64,6 +66,8 @@ EOF
     php occ config:system:set mail_smtpport              --value ${MAIL_SMTPPORT} --type integer
     php occ config:system:set mail_smtphost              --value ${MAIL_SMTPHOST}
 fi
+
+exit
 
 # Start PHP-FPM
 php-fpm

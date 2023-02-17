@@ -17,8 +17,7 @@ RUN apt-get update \
         procps \
         rsync \
         unzip \
-        && docker-php-ext-install opcache \
-        && docker-php-ext-install zip
+        sudo
 
 RUN addgroup --gid ${host_gid} nextcloud \
     && adduser --uid ${host_uid} --ingroup nextcloud nextcloud \
@@ -39,41 +38,45 @@ RUN chmod uga+x /usr/local/bin/install-php-extensions && sync \
     pgsql \
     pdo_mysql \
     mysqli \
-    redis \
-    memcached \
     apcu \
+    bcmath \
     gd \
+    gmp \
     imagick \
     intl \
+    memcached \
+    opcache \
     pcntl \
+    redis \
     sockets \
-    bcmath \
-    gmp \
     sysvsem \
     xdebug \
+    zip \
     # Configure Imagick
     && sed -i'' 's|.*<policy domain="coder".*"PDF".*|<policy domain="coder" rights="read \| write" pattern="PDF" />|g' /etc/ImageMagick-6/policy.xml \
     && rm /usr/local/bin/install-php-extensions
 
+USER nextcloud
+
 # Install node
-ENV NVM_DIR=/opt/nvm
-RUN git clone https://github.com/nvm-sh/nvm.git $NVM_DIR
-RUN cd $NVM_DIR && \
-    git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1)` && \
-    . $NVM_DIR/nvm.sh && \
-    nvm install ${VERSION_NODE} && \
-    nvm use node && \
-    npm install --global npm@8 && \
-    npm install --global webpack && \
-    npm install --global webpack-cli
-RUN echo "source ${NVM_DIR}/nvm.sh" > /home/nextcloud/.bashrc
+ENV NVM_DIR=/home/nextcloud/.nvm
+RUN git clone https://github.com/nvm-sh/nvm.git $NVM_DIR \
+    && cd $NVM_DIR \
+    && git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1)` \
+    && . $NVM_DIR/nvm.sh \
+    && nvm install ${VERSION_NODE} \
+    && nvm use node \
+    && npm install --global npm@8 \
+    && npm install --global webpack \
+    && npm install --global webpack-cli \
+    && echo "source ${NVM_DIR}/nvm.sh" > /home/nextcloud/.bashrc
+
+USER root
 
 COPY --from=composer /usr/bin/composer /usr/bin/composer
 
 COPY config/php.ini /usr/local/etc/php/conf.d/
 
-WORKDIR /src
+WORKDIR /nextcloud
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 ENTRYPOINT [ "bash", "/usr/local/bin/entrypoint.sh" ]
-
-USER nextcloud
